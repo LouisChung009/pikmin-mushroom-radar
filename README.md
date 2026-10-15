@@ -26,3 +26,18 @@ python radar.py
 - https://github.com/Tr6nt0/bloom-scout-plugin — map tooling, not a guaranteed live observation feed.
 
 No private game API calls, login/session scraping, or invented positions. Existing ChatGPT site at `pikmin-mushroom-finder.perkyzebra10.chatgpt.site` is **not** automatically connected to this private repository. To connect it, an authenticated backend/proxy or an intentionally published safe data endpoint will be necessary. Never embed a private GitHub token into browser JavaScript.
+
+## Source evaluation (2026-10-15)
+- [LIUXVuse/pikmin-bloom-map](https://github.com/LIUXVuse/pikmin-bloom-map): public `spots.json`, but records mix `type: "花點"` and `type: "菇點"`. The adapter explicitly drops flower markers. Reuse/redistribution permission has **not** been established, so this dataset is **not enabled by default**. The reported 644 locations cannot be called 644 mushroom sites.
+- [odyliao-lab/pikmin-mush](https://github.com/odyliao-lab/pikmin-mush): describes rooted Android scanning, but no verified public licensed real-time JSON endpoint. Not connected.
+- [pixlpirate/pikmin-map](https://github.com/pixlpirate/pikmin-map): OSM-based predictions are not confirmed Pikmin mushrooms and are not ingested.
+
+## Acceptance criteria
+1. GitHub Actions workflow succeeds on the latest main commit.
+2. All eight Python unit tests pass.
+3. The published JSON has clear `sources`, `fixed_count`, `live_count`, `live_giant_count` fields.
+4. A missing source yields `status: no_observations` and **0** live giant mushrooms, not made-up data.
+5. A genuine permitted observation feed is required before claiming worldwide live coverage.
+6. The separately hosted frontend is not considered integrated until it reads and displays actual JSON and the refresh timestamp.
+
+Workflow also triggers on source-code pushes; data-only commits are ignored to avoid endless CI loops.
