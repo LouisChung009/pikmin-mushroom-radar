@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'data/mushrooms.json'
+      - 'data/search_sources.json'
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
@@ -26,6 +27,11 @@ jobs:
           python-version: '3.12'
       - name: Run acceptance tests
         run: python -m unittest discover -s tests -v
+      - name: Discover recent reports with Gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-2.5-flash
+        run: python gemini_discovery.py
       - name: Collect observations
         env:
           FIXED_SOURCE_URL: ${{ secrets.FIXED_SOURCE_URL }}
@@ -39,6 +45,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           cp data/mushrooms.json "${RUNNER_TEMP}/mushrooms.json"
+          cp data/search_sources.json "${RUNNER_TEMP}/search_sources.json"
           # Only the generated JSON is carried forward; never force-push or
           # overwrite newer source code from another commit.
           for attempt in 1 2 3; do
@@ -46,7 +53,8 @@ jobs:
             git checkout -B main origin/main
             mkdir -p data
             cp "${RUNNER_TEMP}/mushrooms.json" data/mushrooms.json
-            git add data/mushrooms.json
+            cp "${RUNNER_TEMP}/search_sources.json" data/search_sources.json
+            git add data/mushrooms.json data/search_sources.json
             if git diff --cached --quiet; then
               echo "No JSON changes to publish."
               exit 0
