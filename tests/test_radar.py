@@ -36,6 +36,21 @@ class RadarTests(unittest.TestCase):
         ]
         self.assertEqual(assemble(fixed, [], NOW)["fixed_count"], 1)
 
+    def test_mixed_community_feed_excludes_flowers(self):
+        fixed = [
+            {"name":"A mushroom","lat":24,"lng":121,"type":"菇點"},
+            {"name":"A flower","lat":24.1,"lng":121.1,"type":"花點"},
+            {"name":"B mushroom","lat":25,"lon":122,"type":"mushroom"},
+        ]
+        result = assemble(fixed, [], NOW)
+        self.assertEqual(result["fixed_count"], 2)
+        self.assertEqual({r["name"] for r in result["fixed"]}, {"A mushroom", "B mushroom"})
+
+    def test_unsupported_observation_type_rejected(self):
+        rows = [{"name":"Flower","lat":24,"lon":121,"type":"flower",
+                 "size":"giant","observed_at":"2026-10-15T11:59:00Z"}]
+        self.assertEqual(assemble([], rows, NOW)["live_giant_count"], 0)
+
     def test_observation_without_timestamp_not_live(self):
         rows = [{"name":"unknown","lat":24,"lon":121,"size":"giant"}]
         self.assertEqual(assemble([], rows, NOW)["live_count"], 0)
