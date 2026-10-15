@@ -1,68 +1,122 @@
-"""Collect public, explicitly supplied Pikmin Bloom mushroom observations.
+"""Pikmin Bloom mushroom radar: verified locations and time-bounded observations.
 
-Set MUSHROOM_SOURCE_URL to a permitted HTTPS JSON feed. No game API is
-assumed, no authentication is bypassed, and no locations are invented.
+Sources must be explicitly permitted public HTTPS JSON endpoints. No Niantic
+private interfaces, account credentials, or synthetic sightings are used.
 """
 import datetime as dt
 import json
 import os
 from pathlib import Path
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import urlopen, Request
 
-OUTPUT = Path("data/mushrooms.json")
-SOURCE = os.environ.get("MUSHROOM_SOURCE_URL", "").strip()
-NOW = dt.datetime.now(dt.timezone.utc).isoformat()
-MAX_ITEMS = 20000
+UTC = dt.timezone.utc
+GIANT = {"giant", "巨大", "giant mushroom", "巨型", "巨大蘑菇"}
+MAX_BYTES = 5_000_000
+MAX_ITEMS = 20_000
+OUT = Path("data/mushrooms.json")
 
-def valid(row):
-    if not isinstance(row, dict):
-        return False
+def fetch(url):
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("Only public HTTPS sources without URL credentials are supported")
+    req = Request(url, headers={"User-Agent": "PikminMushroomRadar/1.1"})
+    with urlopen(req, timeout=20) as response:
+        raw = response.read(MAX_BYTES + 1)
+    if len(raw) > MAX_BYTES:
+        raise ValueError("Feed exceeds 5 MB")
+    payload = json.loads(raw)
+    rows = payload if isinstance(payload, list) else payload.get("mushrooms", [])
+    if not isinstance(rows, list):
+        raise ValueError("Feed must contain a mushrooms array")
+    return rows[:MAX_ITEMS], parsed.hostname
+
+def coords(item):
+    lat = float(item["lat"])
+    lon = float(item.get("lon", item.get("lng")))
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise ValueError("Invalid coordinates")
+    return lat, lon
+
+def observed_time(value):
+    if not isinstance(value, str) or not value.strip():
+        return None
     try:
-        lat, lon = float(row["lat"]), float(row["lon"])
-    except (ValueError, TypeError, KeyError):
-        return False
-    return -90 <= lat <= 90 and -180 <= lon <= 180 and isinstance(row.get("name"), str)
+        parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return parsed.astimezone(UTC) if parsed.tzinfo else None
+    except ValueError:
+        return None
+
+def normalize(rows, kind, now, ttl_minutes):
+    result = {}
+    for item in rows:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            continue
+        try:
+            lat, lon = coords(item)
+        except (TypeError, ValueError, KeyError):
+            continue
+        size = str(item.get("size", "")).strip().lower()
+        when = observed_time(item.get("observed_at"))
+        if kind == "live":
+            # A live mushroom is only valid when explicitly observed recently.
+            if when is None or not (dt.timedelta(0) <= now - when <= dt.timedelta(minutes=ttl_minutes)):
+                continue
+        name = item["name"].strip()[:160]
+        if not name:
+            continue
+        entry = {"name": name, "lat": lat, "lon": lon, "size": size,
+                 "giant": size in GIANT, "kind": kind,
+                 "observed_at": when.isoformat() if when else None,
+                 "country": str(item.get("country", ""))[:80]}
+        key = (round(lat, 5), round(lon, 5), name.casefold())
+        prev = result.get(key)
+        if prev is None or (entry["observed_at"] or "") > (prev["observed_at"] or ""):
+            result[key] = entry
+    return list(result.values())
+
+def assemble(fixed_rows, live_rows, now=None, ttl_minutes=90):
+    now = now or dt.datetime.now(UTC)
+    if ttl_minutes < 1 or ttl_minutes > 1440:
+        raise ValueError("TTL must be 1–1440 minutes")
+    fixed = normalize(fixed_rows, "fixed", now, ttl_minutes)
+    live = normalize(live_rows, "live", now, ttl_minutes)
+    fixed.sort(key=lambda x: (x["country"], x["name"]))
+    live.sort(key=lambda x: (not x["giant"], x["name"]))
+    return {"updated_at": now.isoformat(), "ttl_minutes": ttl_minutes,
+            "fixed_count": len(fixed), "live_count": len(live),
+            "live_giant_count": sum(x["giant"] for x in live),
+            "fixed": fixed, "live": live}
 
 def main():
-    output = {"updated_at": NOW, "status": "source_not_configured",
-              "source": None, "count": 0, "giant_count": 0, "mushrooms": []}
-    if SOURCE:
-        parsed = urlparse(SOURCE)
-        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
-            raise ValueError("Source must be a public HTTPS URL without credentials")
-        req = Request(SOURCE, headers={"User-Agent": "PikminMushroomRadar/1.0"})
-        with urlopen(req, timeout=20) as response:
-            if int(response.headers.get("Content-Length", "0")) > 5_000_000:
-                raise ValueError("Feed too large")
-            raw = response.read(5_000_001)
-        if len(raw) > 5_000_000:
-            raise ValueError("Feed too large")
-        data = json.loads(raw)
-        rows = data if isinstance(data, list) else data.get("mushrooms", [])
-        if not isinstance(rows, list):
-            raise ValueError("Expected list or object with mushrooms list")
-        seen = set()
-        items = []
-        for row in rows[:MAX_ITEMS]:
-            if not valid(row):
-                continue
-            size = str(row.get("size", "")).lower()
-            key = (round(float(row["lat"]), 5), round(float(row["lon"]), 5),
-                   row["name"].strip(), size)
-            if key in seen:
-                continue
-            seen.add(key)
-            items.append({"name": row["name"][:160], "lat": float(row["lat"]),
-                          "lon": float(row["lon"]), "size": size,
-                          "observed_at": str(row.get("observed_at", ""))[:40]})
-        items.sort(key=lambda x: x["size"] not in ("giant", "巨大", "giant mushroom"))
-        output.update(status="ok", source=parsed.hostname, count=len(items),
-                      giant_count=sum(x["size"] in ("giant", "巨大", "giant mushroom") for x in items),
-                      mushrooms=items)
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"status={output['status']} count={output['count']} giant={output['giant_count']}")
+    now = dt.datetime.now(UTC)
+    ttl = int(os.getenv("OBSERVATION_TTL_MINUTES", "90"))
+    fixed, live, sources, errors = [], [], {}, []
+    for kind, env in (("fixed", "FIXED_SOURCE_URL"), ("live", "MUSHROOM_SOURCE_URL")):
+        url = os.getenv(env, "").strip()
+        if not url:
+            sources[kind] = "not_configured"
+            continue
+        try:
+            rows, hostname = fetch(url)
+            if kind == "fixed":
+                fixed = rows
+            else:
+                live = rows
+            sources[kind] = hostname
+        except Exception as exc:
+            # Fail the job rather than publish a false empty success.
+            errors.append(f"{kind}: {type(exc).__name__}: {exc}")
+    if errors:
+        raise RuntimeError("; ".join(errors))
+    output = assemble(fixed, live, now, ttl)
+    output["sources"] = sources
+    output["status"] = "ok" if fixed or live else "no_observations"
+    OUT.parent.mkdir(exist_ok=True, parents=True)
+    OUT.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"status={output['status']} fixed={output['fixed_count']} live={output['live_count']} giant={output['live_giant_count']}")
+    if os.getenv("REQUIRE_LIVE_DATA") == "1" and not live:
+        raise RuntimeError("Live data required but source returned zero rows")
 
 if __name__ == "__main__":
     main()
