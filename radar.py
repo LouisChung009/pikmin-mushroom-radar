@@ -52,6 +52,12 @@ def normalize(rows, kind, now, ttl_minutes):
     for item in rows:
         if not isinstance(item, dict) or not isinstance(item.get("name"), str):
             continue
+        # Community maps can mix flowers and mushrooms in the same feed.
+        # Unknown or unspecified types remain admissible for dedicated
+        # mushroom-only feeds; explicitly non-mushroom types are rejected.
+        raw_type = str(item.get("type", "")).strip().lower()
+        if raw_type and raw_type not in ("菇點", "蘑菇", "mushroom", "mushrooms", "菇", "mushroom spot"):
+            continue
         try:
             lat, lon = coords(item)
         except (TypeError, ValueError, KeyError):
@@ -81,6 +87,8 @@ def assemble(fixed_rows, live_rows, now=None, ttl_minutes=90):
         raise ValueError("TTL must be 1–1440 minutes")
     fixed = normalize(fixed_rows, "fixed", now, ttl_minutes)
     live = normalize(live_rows, "live", now, ttl_minutes)
+    # When both feeds report the same coordinate and name, the observation
+    # stays in the live layer; it never modifies the source location feed.
     fixed.sort(key=lambda x: (x["country"], x["name"]))
     live.sort(key=lambda x: (not x["giant"], x["name"]))
     return {"updated_at": now.isoformat(), "ttl_minutes": ttl_minutes,
