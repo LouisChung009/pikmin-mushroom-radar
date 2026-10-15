@@ -41,3 +41,16 @@ No private game API calls, login/session scraping, or invented positions. Existi
 6. The separately hosted frontend is not considered integrated until it reads and displays actual JSON and the refresh timestamp.
 
 Workflow also triggers on source-code pushes; data-only commits are ignored to avoid endless CI loops.
+
+## Gemini Google Search grounding integration
+The scheduled pipeline runs `gemini_discovery.py` to find recent *public web reports* of Pikmin Bloom giant mushrooms. This is **not** a direct Niantic game-state feed.
+
+1. Create your Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey).
+2. Add it as a GitHub Actions repository secret named **`GEMINI_API_KEY`** under Settings → Secrets and variables → Actions. **Do not paste the key into issues, code, or chat.**
+3. Run **Actions → Mushroom radar refresh → Run workflow**.
+4. Check `data/search_sources.json`. `mode: leads_only_not_verified_game_locations` plus nonzero `count` means grounded search links were discovered. `mode: not_configured` means the key has not been provided.
+5. The frontend shows grounded citations beneath the map, visually separate from fixed or recent mushroom observations.
+
+Safety: Gemini might find false, stale, or unrelated reports. Search citations are unverified leads, never accepted as live sightings or rendered as map markers without a separate authenticated/time-stamped data source. A successful CI run with 0 observations is not a successful end-to-end live-radar acceptance. API usage may be billed; the workflow makes three grounded requests per 30-minute run if a key is configured (~4,320 base requests per 30-day month), and individual Gemini calls can create multiple billable Google searches. Monitor Gemini usage and quotas.
+
+Tests: `python -m unittest discover -s tests -v`, then independent live acceptance: `python audit_acceptance.py`. The latter is expected to fail until there are genuinely verified fresh observations.
