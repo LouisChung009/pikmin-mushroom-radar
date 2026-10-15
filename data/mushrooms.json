@@ -1,8 +1,14 @@
 {
-  "updated_at": "2026-10-15T12:42:31.509543+00:00",
-  "status": "source_not_configured",
-  "source": null,
-  "count": 0,
-  "giant_count": 0,
-  "mushrooms": []
+  "updated_at": "2026-10-15T13:19:59.568621+00:00",
+  "ttl_minutes": 90,
+  "fixed_count": 0,
+  "live_count": 0,
+  "live_giant_count": 0,
+  "fixed": [],
+  "live": [],
+  "sources": {
+    "fixed": "not_configured",
+    "live": "not_configured"
+  },
+  "status": "no_observations"
 }
