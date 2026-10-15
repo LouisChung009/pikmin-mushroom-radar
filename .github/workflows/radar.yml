@@ -1,5 +1,9 @@
 name: Mushroom radar refresh
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/mushrooms.json'
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
