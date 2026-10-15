@@ -17,16 +17,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Collect verified public observations
+      - name: Run acceptance tests
+        run: python -m unittest discover -s tests -v
+      - name: Collect observations
         env:
+          FIXED_SOURCE_URL: ${{ secrets.FIXED_SOURCE_URL }}
           MUSHROOM_SOURCE_URL: ${{ secrets.MUSHROOM_SOURCE_URL }}
+          OBSERVATION_TTL_MINUTES: '90'
         run: python radar.py
-      - name: Commit updated results
+      - name: Commit results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/mushrooms.json
           if ! git diff --cached --quiet; then
-            git commit -m "chore: refresh mushroom observations"
+            git commit -m "chore: refresh radar observations"
             git push
           fi
