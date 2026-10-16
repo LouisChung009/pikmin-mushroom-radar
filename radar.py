@@ -117,8 +117,20 @@ def main():
             errors.append(f"{kind}: {type(exc).__name__}: {exc}")
     if errors:
         raise RuntimeError("; ".join(errors))
+    from report_ingest import approved_observations
+    community = approved_observations(os.getenv("GITHUB_REPOSITORY", ""), os.getenv("GITHUB_TOKEN", ""), now)
+    live.extend(community)
+    if community:
+        sources["community"] = "github_issues_maintainer_approved"
     output = assemble(fixed, live, now, ttl)
     output["sources"] = sources
+    approved_by_name = {row["name"]: row for row in community}
+    for row in output["live"]:
+        source_row = approved_by_name.get(row["name"])
+        if source_row:
+            row["source"] = source_row["source"]
+            row["verification"] = source_row["verification"]
+            row["report_url"] = source_row["report_url"]
     output["status"] = "ok" if fixed or live else "no_observations"
     OUT.parent.mkdir(exist_ok=True, parents=True)
     OUT.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
