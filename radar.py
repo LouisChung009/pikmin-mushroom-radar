@@ -74,7 +74,8 @@ def normalize(rows, kind, now, ttl_minutes):
         entry = {"name": name, "lat": lat, "lon": lon, "size": size,
                  "giant": size in GIANT, "kind": kind,
                  "observed_at": when.isoformat() if when else None,
-                 "country": str(item.get("country", ""))[:80],\n                 "mushroom_type": str(item.get("mushroom_type", ""))[:80]}
+                 "country": str(item.get("country", ""))[:80],
+                 "mushroom_type": str(item.get("mushroom_type", ""))[:80]}
         key = (round(lat, 5), round(lon, 5), name.casefold())
         prev = result.get(key)
         if prev is None or (entry["observed_at"] or "") > (prev["observed_at"] or ""):
