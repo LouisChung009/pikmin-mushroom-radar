@@ -121,8 +121,7 @@ def main():
     from report_ingest import approved_observations
     community = approved_observations(os.getenv("GITHUB_REPOSITORY", ""), os.getenv("GITHUB_TOKEN", ""), now)
     live.extend(community)
-    if community:
-        sources["community"] = "github_issues_maintainer_approved"
+    sources["community"] = "github_issues_maintainer_approved"
     output = assemble(fixed, live, now, ttl)
     output["sources"] = sources
     approved_by_name = {row["name"]: row for row in community}
