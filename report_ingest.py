@@ -97,6 +97,7 @@ def ensure_approval_label(repo, token):
 def approved_observations(repo, token, now=None):
     if not token:
         return []
+    ensure_approval_label(repo, token)
     rows, page = [], 1
     while page <= 10 and len(rows) < MAX_ISSUES:
         query = urlencode({"state": "all", "labels": APPROVED_LABEL, "per_page": 100, "page": page})
