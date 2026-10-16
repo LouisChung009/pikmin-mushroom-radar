@@ -1,0 +1,59 @@
+name: 回報近期蘑菇觀測
+description: 只提交本人近期親眼觀測，需同意公開精確座標
+title: "[觀測回報] "
+labels: ["community-report"]
+body:
+  - type: markdown
+    attributes:
+      value: "提交即表示你是本人親眼觀測。核准標籤由維護者審核後才會進入公開資料；請勿提交私人場所或他人個資。此為社群回報，非官方遊戲資料。"
+  - type: input
+    id: observed_at
+    attributes:
+      label: 觀測時間（UTC）
+      description: "ISO 8601，例如 2026-10-16T12:30:00Z；僅接受最近 90 分鐘"
+      placeholder: "2026-10-16T12:30:00Z"
+    validations:
+      required: true
+  - type: input
+    id: latitude
+    attributes:
+      label: 緯度
+      placeholder: "例如 25.0330"
+    validations:
+      required: true
+  - type: input
+    id: longitude
+    attributes:
+      label: 經度
+      placeholder: "例如 121.5654"
+    validations:
+      required: true
+  - type: dropdown
+    id: size
+    attributes:
+      label: 大小
+      options: ["small", "normal", "large", "giant", "小", "普通", "大", "巨大"]
+    validations:
+      required: true
+  - type: input
+    id: mushroom_type
+    attributes:
+      label: 種類
+      description: "可填顏色或種類；不確定可填未知"
+      placeholder: "例如紅色"
+    validations:
+      required: true
+  - type: checkboxes
+    id: eyewitness
+    attributes:
+      label: 本人親眼觀測
+      options:
+        - label: 我本人於上述時間在遊戲中看到此蘑菇，資料不是推測或 AI 搜尋結果
+          required: true
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: 同意公開精確座標
+      options:
+        - label: 我同意將精確座標與觀測時間公開顯示於雷達
+          required: true
