@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  issues: read
 concurrency:
   group: mushroom-radar
   cancel-in-progress: false
@@ -27,16 +28,13 @@ jobs:
           python-version: '3.12'
       - name: Run acceptance tests
         run: python -m unittest discover -s tests -v
-      - name: Discover recent reports with Gemini
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-2.5-flash
-        run: python gemini_discovery.py
       - name: Collect observations
         env:
           FIXED_SOURCE_URL: ${{ secrets.FIXED_SOURCE_URL }}
           MUSHROOM_SOURCE_URL: ${{ secrets.MUSHROOM_SOURCE_URL }}
           OBSERVATION_TTL_MINUTES: '90'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: python radar.py
       - name: Commit updated results safely
         shell: bash
