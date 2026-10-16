@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  issues: read
+  issues: write
 concurrency:
   group: mushroom-radar
   cancel-in-progress: false
