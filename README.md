@@ -1,56 +1,35 @@
 # Pikmin Mushroom Radar
 
-Global Pikmin Bloom mushroom location **framework** with separate fixed locations and time-sensitive observations. No live worldwide coverage is claimed without a verified observation source.
+本專案只發布可追溯的資料。社群回報不代表 Niantic 官方遊戲資料，也不是官方即時 API。
 
-## Automatic refresh
-GitHub Actions: `.github/workflows/radar.yml`. Scheduled at minute 7 and 37 of every hour (GitHub best effort), plus manual `workflow_dispatch`. Six acceptance tests run before collection; results are committed to `data/mushrooms.json`.
+## 自有回報流程
 
-## Data sources (GitHub Actions repository secrets)
-- `FIXED_SOURCE_URL`: authorized publicly accessible HTTPS JSON feed of *known locations*. These are NOT current mushroom spawns.
-- `MUSHROOM_SOURCE_URL`: authorized HTTPS JSON feed of *observations* with accurate `observed_at` timestamp.
-- Optional `OBSERVATION_TTL_MINUTES` defaults to 90 (currently configured in workflow).
+1. 使用 GitHub Issue 表單「回報近期蘑菇觀測」提交本人親眼看到的菇點、UTC 時間、座標與種類/大小。
+2. 提交者必須勾選親眼觀測及公開精確座標同意。不要提交私人場所、他人個資或推測資料。
+3. 維護者核對回報後，才為 issue 加上 `radar-approved` 標籤。沒有標籤的回報不會匯入。
+4. GitHub Actions 每小時執行兩次，僅接受最近 90 分鐘、座標有效且同意欄位完整的核准回報，並寫入 `data/mushrooms.json`。
+5. 地圖會標示「社群審核回報」。不會把 Gemini 搜尋結果當成遊戲實況，也不會讀取上游私有介面或帳號資料。
 
-Format: a JSON array or `{"mushrooms": [...]}`. Each record needs `name`, `lat`, `lon` (or `lng`); live records additionally require `observed_at` as timezone-aware ISO 8601 and `size`. Values `giant`, `巨大`, `giant mushroom`, `巨型`, `巨大蘑菇` count as giant.
+Issue 公開時，提交內容本身也可能公開。精確座標只有在勾選同意後才會進入地圖。可透過撤銷核准標籤，讓後續更新不再包含該筆回報。
 
-`data/mushrooms.json` contains `fixed`, `live`, counts, sources, status, and a timestamp. Missing sources produce explicit `no_observations` status. Source failures fail the workflow rather than silently replacing them with empty data.
+## 目前限制
 
-## Test locally
+- 此 GitHub 儲存庫目前為 private。Issue 表單只供有 repo 存取權的人使用，尚未形成公開玩家回報入口。
+- 本管線不是遊戲自動掃描器；若沒有人工提交並經維護者核准，近期菇點與巨大蘑菇數量應為 0。
+- 固定點與其他即時 JSON feed 僅能接入已獲明確使用/再發布授權的來源。環境變數：`FIXED_SOURCE_URL`、`MUSHROOM_SOURCE_URL`。
+- GitHub Pages 必須由 repo 管理者啟用後才會有公開地圖網址；本次不更動 repo 可見性或 Pages 設定。
+
+## 本機驗收
+
 ```sh
 python -m unittest discover -s tests -v
-python radar.py
+python audit_acceptance.py
 ```
 
-## Verified candidate sources (not connected by default)
-- https://github.com/LIUXVuse/pikmin-bloom-map — community-reported GPS points; redistribution/automated use permission must be verified.
-- https://github.com/odyliao-lab/pikmin-mush — scanner uses rooted Android devices and version-specific hooks, **not** a documented public realtime JSON API.
-- https://github.com/Tr6nt0/bloom-scout-plugin — map tooling, not a guaranteed live observation feed.
+獨立資料驗收在沒有真實新鮮回報時應回報 FAIL；不得用測試樣本或搜尋線索冒充實際菇點。
 
-No private game API calls, login/session scraping, or invented positions. Existing ChatGPT site at `pikmin-mushroom-finder.perkyzebra10.chatgpt.site` is **not** automatically connected to this private repository. To connect it, an authenticated backend/proxy or an intentionally published safe data endpoint will be necessary. Never embed a private GitHub token into browser JavaScript.
+## 舊來源研究紀錄
 
-## Source evaluation (2026-10-15)
-- [LIUXVuse/pikmin-bloom-map](https://github.com/LIUXVuse/pikmin-bloom-map): public `spots.json`, but records mix `type: "花點"` and `type: "菇點"`. The adapter explicitly drops flower markers. Reuse/redistribution permission has **not** been established, so this dataset is **not enabled by default**. The reported 644 locations cannot be called 644 mushroom sites.
-- [odyliao-lab/pikmin-mush](https://github.com/odyliao-lab/pikmin-mush): describes rooted Android scanning, but no verified public licensed real-time JSON endpoint. Not connected.
-- [pixlpirate/pikmin-map](https://github.com/pixlpirate/pikmin-map): OSM-based predictions are not confirmed Pikmin mushrooms and are not ingested.
-
-## Acceptance criteria
-1. GitHub Actions workflow succeeds on the latest main commit.
-2. All eight Python unit tests pass.
-3. The published JSON has clear `sources`, `fixed_count`, `live_count`, `live_giant_count` fields.
-4. A missing source yields `status: no_observations` and **0** live giant mushrooms, not made-up data.
-5. A genuine permitted observation feed is required before claiming worldwide live coverage.
-6. The separately hosted frontend is not considered integrated until it reads and displays actual JSON and the refresh timestamp.
-
-Workflow also triggers on source-code pushes; data-only commits are ignored to avoid endless CI loops.
-
-## Gemini Google Search grounding integration
-The scheduled pipeline runs `gemini_discovery.py` to find recent *public web reports* of Pikmin Bloom giant mushrooms. This is **not** a direct Niantic game-state feed.
-
-1. Create your Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey).
-2. Add it as a GitHub Actions repository secret named **`GEMINI_API_KEY`** under Settings → Secrets and variables → Actions. **Do not paste the key into issues, code, or chat.**
-3. Run **Actions → Mushroom radar refresh → Run workflow**.
-4. Check `data/search_sources.json`. `mode: leads_only_not_verified_game_locations` plus nonzero `count` means grounded search links were discovered. `mode: not_configured` means the key has not been provided.
-5. The frontend shows grounded citations beneath the map, visually separate from fixed or recent mushroom observations.
-
-Safety: Gemini might find false, stale, or unrelated reports. Search citations are unverified leads, never accepted as live sightings or rendered as map markers without a separate authenticated/time-stamped data source. A successful CI run with 0 observations is not a successful end-to-end live-radar acceptance. API usage may be billed; the workflow makes three grounded requests per 30-minute run if a key is configured (~4,320 base requests per 30-day month), and individual Gemini calls can create multiple billable Google searches. Monitor Gemini usage and quotas.
-
-Tests: `python -m unittest discover -s tests -v`, then independent live acceptance: `python audit_acceptance.py`. The latter is expected to fail until there are genuinely verified fresh observations.
+- `odyliao-lab/pikmin-mush` 是社群掃描器專案，未取得其擁有者授權；本專案不依賴它的介面或資料。
+- 逆向程式、hook 或私有遊戲介面不等於取得資料使用/再發布權。本專案不加入這類擷取方式。
+- 搜尋到的公開社群地圖也不會自動取得再發布授權，因此不會匯入未授權資料。
