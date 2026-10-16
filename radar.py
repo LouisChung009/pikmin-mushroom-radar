@@ -130,7 +130,6 @@ def main():
         if source_row:
             row["source"] = source_row["source"]
             row["verification"] = source_row["verification"]
-            row["report_url"] = source_row["report_url"]
     output["status"] = "ok" if fixed or live else "no_observations"
     OUT.parent.mkdir(exist_ok=True, parents=True)
     OUT.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
