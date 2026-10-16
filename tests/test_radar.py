@@ -35,6 +35,7 @@ class ReportIngestTests(unittest.TestCase):
         row = parse_issue(issue(VALID_BODY), NOW)
         self.assertEqual(row["size"], "giant")
         self.assertEqual(row["verification"], "maintainer_approved_report")
+        self.assertEqual(row["mushroom_type"], "紅色")
 
     def test_missing_consent_rejected(self):
         self.assertIsNone(parse_issue(issue(VALID_BODY.replace("- [x] 我同意", "- [ ] 我同意")), NOW))
