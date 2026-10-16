@@ -3,7 +3,8 @@ import datetime as dt
 import json
 import os
 import re
-from urllib.request import Request, urlopen\nfrom urllib.error import HTTPError
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 
 UTC = dt.timezone.utc
