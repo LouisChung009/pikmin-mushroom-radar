@@ -57,8 +57,7 @@ def parse_issue(issue, now=None):
     return {
         "name": name, "lat": lat, "lon": lon, "size": size,
         "type": "mushroom", "observed_at": observed.isoformat(),
-        "source": "community_issue", "verification": "maintainer_approved_report",
-        "report_url": issue.get("html_url", "")
+        "source": "community_issue", "verification": "maintainer_approved_report"
     }
 
 def approved_observations(repo, token, now=None):
