@@ -53,11 +53,13 @@ def parse_issue(issue, now=None):
     size = _field(body, "大小", "蘑菇大小").strip().casefold()
     if size not in {"small", "normal", "large", "giant", "小", "普通", "大", "巨大"}:
         return None
+    mushroom_type = _field(body, "種類", "蘑菇種類", "顏色")[:80]
     name = "社群回報 #" + str(issue.get("number", ""))
     return {
         "name": name, "lat": lat, "lon": lon, "size": size,
         "type": "mushroom", "observed_at": observed.isoformat(),
-        "source": "community_issue", "verification": "maintainer_approved_report"
+        "source": "community_issue", "verification": "maintainer_approved_report",
+        "mushroom_type": mushroom_type
     }
 
 def approved_observations(repo, token, now=None):
