@@ -3,7 +3,7 @@ import datetime as dt
 import json
 import os
 import re
-from urllib.request import Request, urlopen
+from urllib.request import Request, urlopen\nfrom urllib.error import HTTPError
 from urllib.parse import urlencode
 
 UTC = dt.timezone.utc
@@ -61,6 +61,37 @@ def parse_issue(issue, now=None):
         "source": "community_issue", "verification": "maintainer_approved_report",
         "mushroom_type": mushroom_type
     }
+
+def ensure_approval_label(repo, token):
+    """Create the moderation label once if it is missing."""
+    if not repo or not token:
+        return
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "PikminMushroomRadar/1.0",
+    }
+    label_url = f"https://api.github.com/repos/{repo}/labels/{APPROVED_LABEL}"
+    try:
+        with urlopen(Request(label_url, headers=headers), timeout=20):
+            return
+    except HTTPError as exc:
+        if exc.code != 404:
+            raise
+    payload = json.dumps({
+        "name": APPROVED_LABEL,
+        "color": "1f6feb",
+        "description": "Maintainer-approved public mushroom observations",
+    }).encode("utf-8")
+    create = Request(
+        f"https://api.github.com/repos/{repo}/labels",
+        data=payload,
+        headers={**headers, "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlopen(create, timeout=20):
+        return
 
 def approved_observations(repo, token, now=None):
     if not token:
