@@ -1,5 +1,9 @@
 # Pikmin Mushroom Radar
 
+接手本專案請先讀 [STATUS.md](STATUS.md) 與 [LESSONS.md](LESSONS.md)。程式、測試、工作流程及資料皆保存於此儲存庫；自動取得真實遊戲觀測仍未完成，目前實際菇點為 0。
+
+公開地圖：https://louischung009.github.io/pikmin-mushroom-radar/
+
 本專案只發布可追溯的資料。社群回報不代表 Niantic 官方遊戲資料，也不是官方即時 API。
 
 ## 自有回報流程
@@ -14,10 +18,10 @@ Issue 公開時，提交內容本身也可能公開。精確座標只有在勾�
 
 ## 目前限制
 
-- 此 GitHub 儲存庫目前為 private。Issue 表單只供有 repo 存取權的人使用，尚未形成公開玩家回報入口。
+- 儲存庫目前為 public，Pages 已啟用。玩家可經 GitHub Issue 表單回報；此入口不代表自動掃描已完成。
 - 本管線不是遊戲自動掃描器；若沒有人工提交並經維護者核准，近期菇點與巨大蘑菇數量應為 0。
 - 固定點與其他即時 JSON feed 僅能接入已獲明確使用/再發布授權的來源。環境變數：`FIXED_SOURCE_URL`、`MUSHROOM_SOURCE_URL`。
-- GitHub Pages 必須由 repo 管理者啟用後才會有公開地圖網址；本次不更動 repo 可見性或 Pages 設定。
+- Pages 與收集工作已成功執行，但固定點與即時 feed 尚未設定；完整資料及瀏覽器互動驗收仍待完成。
 
 ## 本機驗收
 
@@ -31,5 +35,5 @@ python audit_acceptance.py
 ## 舊來源研究紀錄
 
 - `odyliao-lab/pikmin-mush` 是社群掃描器專案，未取得其擁有者授權；本專案不依賴它的介面或資料。
-- 逆向程式、hook 或私有遊戲介面不等於取得資料使用/再發布權。本專案不加入這類擷取方式。
+- 逆向程式、hook 或私有遊戲介面不等於取得資料使用/再發布權。自有裝置擷取方式仍待確認相容性、授權與實機驗證；未部署或驗證任何 hook。
 - 搜尋到的公開社群地圖也不會自動取得再發布授權，因此不會匯入未授權資料。
