@@ -119,9 +119,10 @@ def main():
     if errors:
         raise RuntimeError("; ".join(errors))
     from report_ingest import approved_observations
-    community = approved_observations(os.getenv("GITHUB_REPOSITORY", ""), os.getenv("GITHUB_TOKEN", ""), now)
+    github_token = os.getenv("GITHUB_TOKEN", "")
+    community = approved_observations(os.getenv("GITHUB_REPOSITORY", ""), github_token, now)
     live.extend(community)
-    sources["community"] = "github_issues_maintainer_approved"
+    sources["community"] = "github_issues_maintainer_approved" if github_token else "not_configured"
     output = assemble(fixed, live, now, ttl)
     output["sources"] = sources
     approved_by_name = {row["name"]: row for row in community}
