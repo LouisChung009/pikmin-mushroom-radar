@@ -1,7 +1,6 @@
 name: 回報近期蘑菇觀測
 description: 只提交本人近期親眼觀測，需同意公開精確座標
 title: "[觀測回報] "
-labels: ["community-report"]
 body:
   - type: markdown
     attributes:
