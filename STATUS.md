@@ -1,8 +1,52 @@
 ---
-status: active
-updated: 2026-10-16
+status: blocked_by_verified_data_source
+updated: 2026-10-23
 last_tool: Codex
 ---
+# 專案現況與驗收
+
+**總體 FAIL：可靠度修復已部署，但尚無經確認授權、含精確座標的近期巨大蘑菇資料來源。**
+
+- 修復程式：1cdc2de0630cd2b0f7dfc13a2b7885e2b84c71e4。
+- 來源實測補充：af978f52d5eb8783535e975961c93fbbbae4ed1e。
+- 正式網站：https://louischung009.github.io/pikmin-mushroom-radar/
+- Pages 部署 PASS：https://github.com/LouisChung009/pikmin-mushroom-radar/actions/runs/39916743869
+- 收集後真實資料驗收 FAIL：https://github.com/LouisChung009/pikmin-mushroom-radar/actions/runs/39916442196
+- 獨立驗收 FAIL：https://github.com/LouisChung009/pikmin-mushroom-radar/actions/runs/39916442332
+- 第二次收集日誌顯示 No JSON changes to publish，空資料不再只更新時間戳：https://github.com/LouisChung009/pikmin-mushroom-radar/actions/runs/39916744554
+- 本機22項Python測試通過；GitHub兩個工作流程的測試步驟也成功。
+- 本機專用測試資料驗證：近期巨大菇顯示、巨大篩選、90分鐘過期移除、空資料FAIL、固定點篩選。測試資料未上線。
+- 正式網站端到端驗證：地圖圖磚、兩種篩選、重新載入、空資料FAIL提示正常，瀏覽器錯誤紀錄為空。尚無真實巨大菇，不能宣稱真實巨大菇端到端驗收通過。
+
+## 正式資料與設定
+fixed_count=0、live_count=0、live_giant_count=0，status=no_observations、last_observed_at=null。
+資料內容於2026-10-23 15:14:14 +08變更（新增欄位，並非取得觀測）。
+search_sources.json仍為not_configured，searched_at=null、queries=0、count=0。
+GitHub設定頁確認Repository Secrets與Environment Secrets都無設定；Actions自動提供的GITHUB_TOKEN不代表外部來源已配置。
+
+## 修復內容
+- 依正規化後有效觀測判定REQUIRE_LIVE_DATA，過期原始資料不算成功。
+- 固定點不能建立活躍巨大菇；保留逐筆來源，修正同名來源錯配。
+- 原子發布；資料內容相同時保留時間戳；加入last_observed_at。
+- 外部feed需提供可查證的公開授權/許可URL，由維護者先核對內容；URL存在不等於自動完成法律審查。
+- Gemini discovery接回排程，僅產出搜尋線索，絕不轉成遊戲觀測。
+- 收集後執行資料驗收；獨立驗收增加push及每30分鐘排程。GitHub排程不保證準時。
+- 前端每30秒過濾過期觀測，每分鐘重新載入，清楚呈現空資料FAIL。
+
+## 真實來源與手機阻礙
+完整證據見[SOURCE_RESEARCH.md](SOURCE_RESEARCH.md)。
+mush.odyliao.cc/api/mushrooms在15:15:06 +08回傳24,722總筆數、500筆當頁資料，但500筆座標均為null，gps_access.authorized=false；未確認再發布授權，沒有繞過限制。
+指定odyliao-lab/pikmin-mush目前404；同名bittieshsu專案README使用Root、Zygisk注入和定位覆寫，本次不採用。
+其他明信片、OSM飾品地圖與社團抓取資料，均不能建立目前活躍巨大菇的合法可用來源。
+
+官方ADB已成功連上實體CPH2783、遊戲已安裝且可擷取畫面。可見帳號Lv.7，官方蘑菇功能Lv.8解鎖，故本次沒有手機蘑菇詳情可驗證。未安裝Root、注入、GPS覆寫或第三方掃描器，未公開手機精確位置。
+
+## 下一個必要條件
+取得允許再發布的來源授權與精確座標接口，或有明確同意、可追溯、經維護者審核的第一手回報；再驗證持續更新、有效觀測、實際巨大菇與正式地圖。零資料不算完成。
+
+---
+# 2026-10-16歷史交接（以下內容可能已過時，以以上最新驗收為準）
+
 # 專案交接與現況
 
 ## 目標
