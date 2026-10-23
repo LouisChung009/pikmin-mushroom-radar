@@ -15,6 +15,8 @@ def check(path, now=None):
         data = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         return ["Cannot load JSON: " + str(exc)]
+    if not isinstance(data, dict):
+        return ["Root must be an object"]
     fixed, live = data.get("fixed"), data.get("live")
     if not isinstance(fixed, list) or not isinstance(live, list):
         return ["fixed and live must be arrays"]
@@ -24,6 +26,12 @@ def check(path, now=None):
     giants = sum(row.get("giant") is True for row in live if isinstance(row, dict))
     if data.get("live_giant_count") != giants:
         issues.append("live_giant_count mismatch")
+    ttl = data.get("ttl_minutes")
+    if not isinstance(ttl, int) or isinstance(ttl, bool) or not 1 <= ttl <= 90:
+        issues.append("ttl_minutes must be 1..90")
+        ttl = 90
+    if data.get("status") != "ok":
+        issues.append("dataset status is not ok")
     for kind, rows in (("fixed", fixed), ("live", live)):
         seen = set()
         for i, row in enumerate(rows):
@@ -41,6 +49,16 @@ def check(path, now=None):
                 seen.add(key)
             except (KeyError, TypeError, ValueError, AttributeError) as exc:
                 issues.append(f"{loc}: invalid coordinate or name ({exc})")
+            if not isinstance(row.get("name"), str) or not row["name"].strip():
+                issues.append(f"{loc}: missing name")
+            if row.get("verification") == "maintainer_approved_report":
+                if not str(row.get("source_url", "")).startswith("https://github.com/"):
+                    issues.append(f"{loc}: missing original report URL")
+            elif not (str(row.get("source_url", "")).startswith("https://") and
+                      str(row.get("license_url", "")).startswith("https://")):
+                issues.append(f"{loc}: missing source and permission evidence")
+            if kind == "live" and row.get("giant") is True and row.get("size") not in {"giant","巨大","giant mushroom","巨型","巨大蘑菇"}:
+                issues.append(f"{loc}: giant flag contradicts size")
             if row.get("kind") != kind:
                 issues.append(f"{loc}: wrong kind")
             if kind == "fixed" and row.get("giant"):
@@ -48,14 +66,14 @@ def check(path, now=None):
             if kind == "live":
                 try:
                     stamp = dt.datetime.fromisoformat(row["observed_at"].replace("Z", "+00:00"))
-                    if stamp.tzinfo is None or not 0 <= (now - stamp).total_seconds() <= 90*60:
+                    if stamp.tzinfo is None or not 0 <= (now - stamp).total_seconds() <= ttl*60:
                         raise ValueError("stale/future/unzoned observation")
                 except (KeyError, AttributeError, ValueError, TypeError) as exc:
                     issues.append(f"{loc}: invalid timestamp ({exc})")
     sources = data.get("sources", {})
     if not isinstance(sources, dict) or sources.get("fixed") in (None, "not_configured"):
         issues.append("fixed source not configured")
-    if not isinstance(sources, dict) or sources.get("live") in (None, "not_configured"):
+    if not isinstance(sources, dict) or sources.get("live") in (None, "not_configured") and not any(isinstance(row, dict) and row.get("verification") == "maintainer_approved_report" for row in live):
         issues.append("live source not configured")
     if not fixed:
         issues.append("no real fixed mushroom spots")

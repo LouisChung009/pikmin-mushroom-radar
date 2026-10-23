@@ -18,7 +18,7 @@ OUT = Path("data/mushrooms.json")
 
 def fetch(url):
     parsed = urlparse(url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError("Only public HTTPS sources without URL credentials are supported")
     req = Request(url, headers={"User-Agent": "PikminMushroomRadar/1.1"})
     with urlopen(req, timeout=20) as response:
@@ -72,10 +72,13 @@ def normalize(rows, kind, now, ttl_minutes):
         if not name:
             continue
         entry = {"name": name, "lat": lat, "lon": lon, "size": size,
-                 "giant": size in GIANT, "kind": kind,
+                 "giant": kind == "live" and size in GIANT, "kind": kind,
                  "observed_at": when.isoformat() if when else None,
                  "country": str(item.get("country", ""))[:80],
                  "mushroom_type": str(item.get("mushroom_type", ""))[:80]}
+        for field in ("source", "verification", "source_url", "license_url"):
+            if isinstance(item.get(field), str):
+                entry[field] = item[field][:2048]
         key = (round(lat, 5), round(lon, 5), name.casefold())
         prev = result.get(key)
         if prev is None or (entry["observed_at"] or "") > (prev["observed_at"] or ""):
@@ -97,6 +100,24 @@ def assemble(fixed_rows, live_rows, now=None, ttl_minutes=90):
             "live_giant_count": sum(x["giant"] for x in live),
             "fixed": fixed, "live": live}
 
+def publish(output, path=None):
+    """Keep the publication time unchanged when the actual dataset is unchanged."""
+    path = path or OUT
+    try:
+        previous = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        previous = {}
+    current_content = {k: v for k, v in output.items() if k != "updated_at"}
+    previous_content = {k: v for k, v in previous.items() if k != "updated_at"}
+    if current_content == previous_content:
+        output["updated_at"] = previous.get("updated_at")
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temporary.replace(path)
+    return True
+
 def main():
     now = dt.datetime.now(UTC)
     ttl = int(os.getenv("OBSERVATION_TTL_MINUTES", "90"))
@@ -107,7 +128,12 @@ def main():
             sources[kind] = "not_configured"
             continue
         try:
+            permission = os.getenv(env.replace("_URL", "_LICENSE_URL"), "").strip()
+            if not permission.startswith("https://"):
+                raise ValueError("Documented HTTPS license/permission URL required")
             rows, hostname = fetch(url)
+            rows = [{**row, "source_url": url, "license_url": permission,
+                     "verification": "permitted_feed"} for row in rows if isinstance(row, dict)]
             if kind == "fixed":
                 fixed = rows
             else:
@@ -125,17 +151,13 @@ def main():
     sources["community"] = "github_issues_maintainer_approved" if github_token else "not_configured"
     output = assemble(fixed, live, now, ttl)
     output["sources"] = sources
-    approved_by_name = {row["name"]: row for row in community}
-    for row in output["live"]:
-        source_row = approved_by_name.get(row["name"])
-        if source_row:
-            row["source"] = source_row["source"]
-            row["verification"] = source_row["verification"]
-    output["status"] = "ok" if fixed or live else "no_observations"
+    output["status"] = "ok" if output["live_count"] else "no_observations"
+    output["last_observed_at"] = max(
+        (row["observed_at"] for row in output["live"]), default=None)
     OUT.parent.mkdir(exist_ok=True, parents=True)
-    OUT.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    publish(output)
     print(f"status={output['status']} fixed={output['fixed_count']} live={output['live_count']} giant={output['live_giant_count']}")
-    if os.getenv("REQUIRE_LIVE_DATA") == "1" and not live:
+    if os.getenv("REQUIRE_LIVE_DATA") == "1" and not output["live_count"]:
         raise RuntimeError("Live data required but source returned zero rows")
 
 if __name__ == "__main__":

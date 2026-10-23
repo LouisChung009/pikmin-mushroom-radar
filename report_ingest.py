@@ -59,7 +59,7 @@ def parse_issue(issue, now=None):
     return {
         "name": name, "lat": lat, "lon": lon, "size": size,
         "type": "mushroom", "observed_at": observed.isoformat(),
-        "source": "community_issue", "verification": "maintainer_approved_report",
+        "source": "community_issue", "source_url": issue.get("html_url", ""), "verification": "maintainer_approved_report",
         "mushroom_type": mushroom_type
     }
 

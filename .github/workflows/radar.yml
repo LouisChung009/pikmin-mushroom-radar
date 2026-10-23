@@ -32,10 +32,16 @@ jobs:
         env:
           FIXED_SOURCE_URL: ${{ secrets.FIXED_SOURCE_URL }}
           MUSHROOM_SOURCE_URL: ${{ secrets.MUSHROOM_SOURCE_URL }}
+          FIXED_SOURCE_LICENSE_URL: ${{ vars.FIXED_SOURCE_LICENSE_URL }}
+          MUSHROOM_SOURCE_LICENSE_URL: ${{ vars.MUSHROOM_SOURCE_LICENSE_URL }}
           OBSERVATION_TTL_MINUTES: '90'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python radar.py
+      - name: Discover public search leads
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python gemini_discovery.py
       - name: Commit updated results safely
         shell: bash
         run: |
@@ -67,3 +73,6 @@ jobs:
           done
           echo "::error::Unable to publish after 3 retries."
           exit 1
+      - name: Audit real data independently
+        if: always()
+        run: python audit_acceptance.py
