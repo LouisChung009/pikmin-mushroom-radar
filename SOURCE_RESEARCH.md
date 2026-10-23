@@ -7,7 +7,7 @@ This records evidence and uncertainty; public visibility does not establish redi
 | --- | --- | --- | --- |
 | odyliao-lab/pikmin-mush | GitHub repository API and contents both return 404 on this check | No available license or feed contract to verify at this address | Not configured |
 | bittieshsu/pikmin-mush | Public README points to the above name and mush.odyliao.cc; repository metadata has license=null; pushed_at 2026-10-06T16:01:23Z | README describes Root Android Zygisk hooks, injected game data extraction and location override. Code update time is not an observation time. No permission for this radar to republish data was verified | Do not deploy its scanner or consume its data |
-| mush.odyliao.cc/map | Site reachable in Chrome; displays GPS/precise-map lock with unlock/login controls | No authorized public precision feed or reuse terms verified. Visible default filter initially shows zero; this does not establish the total database size | Do not bypass access controls |
+| mush.odyliao.cc/map and /api/mushrooms | Website and documented public API reachable. At 2026-10-23 15:15:06 +08, API count=24,722, returned=500; all 500 have null latitude/longitude, gps_access.authorized=false. Latest last_observed_at=15:15:05 +08 | API has recent timestamps but exact coordinates are access-controlled; reuse permission remains unverified. Website default filter showing zero is not total database size | Do not bypass GPS access controls or import records as mappable observations |
 | LIUXVuse/pikmin-bloom-map | README describes Facebook-group scraping using logged-in cookies; records include scraped_at | scraped_at is scrape time, not current mushroom observation. No permission for redistributing contributors' records verified | Do not import as live sightings |
 | pixlpirate/pikmin-map | README: GPLv3 app using OpenStreetMap for likely decor locations | App license does not make predicted decor points verified mushroom coordinates or active giants | Not a mushroom observation feed |
 | Pickmin postcards atlas | Public pages show postcard mushroom spots and added dates | Added date is not active giant observation time; no verified feed/reuse permission | Candidate for contacting owner, not live ingestion |
@@ -30,6 +30,8 @@ GEMINI_API_KEY enables discovery links only; search results never become map obs
 Official ADB found an authorized physical CPH2783 device. Pikmin Bloom is installed and a local screenshot was captured successfully.
 Connection alone provides no global feed and does not authorize publishing the user's precise location.
 No Root module, hook, GPS override, or third-party scanner was installed.
+The visible player is level 7; official support says mushroom battles unlock at level 8. This account cannot currently supply an in-game mushroom detail for validation.
+Official reference: https://niantic.helpshift.com/hc/en/23-pikmin-bloom/faq/3039-mushrooms-1676271507/
 
 ## Primary references
 
