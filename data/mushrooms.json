@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-23T04:39:55.987823+00:00",
+  "updated_at": "2026-10-23T07:14:14.026281+00:00",
   "ttl_minutes": 90,
   "fixed_count": 0,
   "live_count": 0,
@@ -11,5 +11,6 @@
     "live": "not_configured",
     "community": "github_issues_maintainer_approved"
   },
-  "status": "no_observations"
+  "status": "no_observations",
+  "last_observed_at": null
 }
