@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>歷史觀測｜Pikmin 蘑菇雷達</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+body{margin:0;background:#101827;color:#fff;font:16px/1.6 system-ui}
+main{max-width:1000px;margin:auto;padding:20px}a{color:#aee}
+#map{height:48vh;min-height:280px;border-radius:12px}
+article{padding:16px 0;border-bottom:1px solid #51617a}h2{margin:0;font-size:20px}
+.notice{padding:12px;background:#343044;border-left:4px solid #efb539}
+#status{font-weight:600}.leaflet-popup-content{color:#182338}
+</style>
+</head><body><main>
+<a href="./index.html">← 返回即時雷達</a>
+<h1>歷史蘑菇觀測</h1>
+<p class="notice">以下是曾經觀測到的蘑菇，已超過即時有效期。不代表現在仍存在、大小或種類未改變；不計入活躍蘑菇或巨大菇數量。</p>
+<p id="status" role="status">載入歷史觀測中</p>
+<div id="map" aria-label="歷史蘑菇位置地圖"></div>
+<section id="records" aria-label="歷史觀測列表"></section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map=L.map('map').setView([23.7,121],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
+function textElement(tag,text){const el=document.createElement(tag);el.textContent=text;return el}
+async function loadHistory(){
+ const status=document.getElementById('status'),list=document.getElementById('records');
+ try{
+  const response=await fetch('./data/observations_archive.json',{cache:'no-store'});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  const payload=await response.json();
+  if(!Array.isArray(payload.observations))throw Error('歷史資料格式不正確');
+  const points=[];
+  for(const row of payload.observations){
+   if(row.kind!=='history'||row.publication_consent!==true||row.status!=='expired')continue;
+   if(typeof row.lat!=='number'||typeof row.lon!=='number'||!Number.isFinite(row.lat)||!Number.isFinite(row.lon)||Math.abs(row.lat)>90||Math.abs(row.lon)>180)continue;
+   const stamp=Date.parse(row.observed_at);
+   if(!Number.isFinite(stamp))continue;
+   const article=document.createElement('article');
+   article.append(textElement('h2',row.name),textElement('p','歷史觀測・已過期｜'+row.size_label+row.mushroom_type+'蘑菇'));
+   article.append(textElement('p','觀測時間（台灣）：'+new Date(stamp).toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})+'（精度：分鐘）'));
+   article.append(textElement('p','座標：'+row.lat+', '+row.lon));
+   if(/^https:\/\/github\.com\/LouisChung009\/pikmin-mushroom-radar\/issues\/\d+$/.test(row.source_url||'')){
+    const link=textElement('a','查看原始觀測紀錄');link.href=row.source_url;article.append(link);
+   }
+   list.append(article);
+   const popup=textElement('div',row.name+'｜歷史觀測・已過期｜'+row.size_label+row.mushroom_type+'蘑菇');
+   L.circleMarker([row.lat,row.lon],{radius:9,color:'#a9adc2',fillOpacity:.65}).addTo(map).bindPopup(popup);
+   points.push([row.lat,row.lon]);
+  }
+  if(points.length)map.fitBounds(points,{padding:[35,35],maxZoom:17});
+  status.textContent='歷史觀測 '+points.length+' 筆｜本頁不提供即時狀態';
+ }catch(error){status.textContent='歷史觀測載入失敗：'+error.message}
+}
+loadHistory();
+</script></body></html>
