@@ -1,10 +1,7 @@
 name: Independent radar acceptance
+# Keep strict data acceptance manual while no licensed live source is available.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '17,47 * * * *'
 permissions:
   contents: read
 jobs:

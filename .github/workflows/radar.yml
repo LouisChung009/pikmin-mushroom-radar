@@ -1,12 +1,7 @@
 name: Mushroom radar refresh
+# Resume automatic collection only after a licensed live source is configured.
+# Known data-readiness failures should not send recurring failure notifications.
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - 'data/mushrooms.json'
-      - 'data/search_sources.json'
-  schedule:
-    - cron: '7,37 * * * *'
   workflow_dispatch:
 permissions:
   contents: write
